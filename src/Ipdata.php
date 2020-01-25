@@ -37,12 +37,12 @@ class Ipdata
     private $requestFactory;
 
     /**
-     * Get an instance of the API client. Give it PSR-18 client, an API key and a PSR-17 request factory.
+     * Get an instance of the API client. Give it an API key, a PSR-18 client and a PSR-17 request factory.
      *
      * @param ClientInterface|null         $httpClient     if null, we will try to use php-http/discovery to find an installed client
      * @param RequestFactoryInterface|null $requestFactory if null, we will try to use php-http/discovery to find an installed factory
      */
-    public function __construct(ClientInterface $httpClient = null, ?string $apiKey = null, RequestFactoryInterface $requestFactory = null)
+    public function __construct(string $apiKey, ClientInterface $httpClient = null, RequestFactoryInterface $requestFactory = null)
     {
         if (null === $httpClient) {
             if (!class_exists(Psr18ClientDiscovery::class)) {
