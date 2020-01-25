@@ -1,0 +1,26 @@
+{
+    "name": "ipdata/api-client",
+    "description": "API client for ipdata.co",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tobias Nyholm",
+            "email": "tobias.nyholm@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^7.2",
+        "psr/http-client": "^1.0"
+    },
+    "require-dev": {
+        "guzzlehttp/guzzle": "^7.0@beta",
+        "phpunit/phpunit": "^8.5"
+    },
+
+    "autoload": {
+        "psr-4": {
+            "Ipdata\\ApiClient\\": "src/"
+        }
+    }
+}
