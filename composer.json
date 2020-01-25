@@ -11,11 +11,14 @@
     ],
     "require": {
         "php": "^7.2",
-        "psr/http-client": "^1.0"
+        "psr/http-client": "^1.0",
+        "psr/http-factory": "^1.0"
     },
     "require-dev": {
         "guzzlehttp/guzzle": "^7.0@beta",
-        "phpunit/phpunit": "^8.5"
+        "phpunit/phpunit": "^8.5",
+        "php-http/discovery": "^1.7",
+        "nyholm/psr7": "^1.2"
     },
 
     "autoload": {

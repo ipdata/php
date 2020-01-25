@@ -4,7 +4,112 @@ declare(strict_types=1);
 
 namespace Ipdata\ApiClient;
 
-interface Ipdata
-{
+use Http\Discovery\Exception\NotFoundException;
+use Http\Discovery\Psr17FactoryDiscovery;
+use Http\Discovery\Psr18ClientDiscovery;
+use Nyholm\Psr7\Factory\Psr17Factory;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\ResponseInterface;
 
+class Ipdata
+{
+    private const BASE_URL = 'https://api.ipdata.co';
+
+    /**
+     * @var string|null
+     */
+    private $apiKey;
+
+    /**
+     * @var ClientInterface
+     */
+    private $httpClient;
+
+    /**
+     * @var RequestFactoryInterface
+     */
+    private $requestFactory;
+
+    /**
+     * Get an instance of the API client. Give it PSR-18 client, an API key and a PSR-17 request factory.
+     *
+     * @param ClientInterface|null         $httpClient     if null, we will try to use php-http/discovery to find an installed client
+     * @param RequestFactoryInterface|null $requestFactory if null, we will try to use php-http/discovery to find an installed factory
+     */
+    public function __construct(ClientInterface $httpClient = null, ?string $apiKey = null, RequestFactoryInterface $requestFactory = null)
+    {
+        if (null === $httpClient) {
+            if (!class_exists(Psr18ClientDiscovery::class)) {
+                throw new \LogicException(sprintf('You cannot use the "%s" without a PSR-18 HTTP client. Pass a "%s" as first argument to the constructor OR try running  "composer require php-http/discovery".', Ipdata::class, ClientInterface::class));
+            }
+
+            try {
+                $httpClient = Psr18ClientDiscovery::find();
+            } catch (NotFoundException $e) {
+                throw new \LogicException('Could not find any installed HTTP clients. Try installing a package for this list: https://packagist.org/providers/psr/http-client-implementation', 0, $e);
+            }
+        }
+
+        if (null === $requestFactory) {
+            if (!class_exists(Psr17Factory::class) && !class_exists(Psr17FactoryDiscovery::class)) {
+                throw new \LogicException(sprintf('You cannot use the "%s" as no PSR-17 request factory have been provided. Try running "composer require nyholm/psr7".', Ipdata::class));
+            }
+
+            try {
+                $requestFactory = class_exists(Psr17Factory::class) ? new Psr17Factory() : Psr17FactoryDiscovery::findRequestFactory();
+            } catch (NotFoundException $e) {
+                throw new \LogicException('Could not find any PSR-17 factories. Try running "composer require nyholm/psr7".', 0, $e);
+            }
+        }
+
+        $this->httpClient = $httpClient;
+        $this->apiKey = $apiKey;
+        $this->requestFactory = $requestFactory;
+    }
+
+    /**
+     * @throws \Psr\Http\Client\ClientExceptionInterface
+     */
+    public function lookup(string $ip, array $fields = []): array
+    {
+        $query = [
+            'api-key' => $this->apiKey,
+        ];
+
+        if (!empty($fields)) {
+            $query['fields'] = $fields;
+        }
+
+        $request = $this->requestFactory->createRequest('GET', sprintf('%s/%s?%s', self::BASE_URL, $ip, http_build_query($query)));
+        $response = $this->httpClient->sendRequest($request);
+
+        return $this->parseResponse($response);
+    }
+
+    /**
+     * Bulk lookup, requires paid subscription.
+     *
+     * @throws \Psr\Http\Client\ClientExceptionInterface
+     */
+    public function buildLookup(array $ips, array $fields = []): array
+    {
+        $query = [
+            'api-key' => $this->apiKey,
+        ];
+
+        if (!empty($fields)) {
+            $query['fields'] = $fields;
+        }
+
+        $request = $this->requestFactory->createRequest('GET', sprintf('%s/bulk?%s', self::BASE_URL, http_build_query($query)));
+        $request->getBody()->write(json_encode($ips));
+        $response = $this->httpClient->sendRequest($request);
+
+        return $this->parseResponse($response);
+    }
+
+    private function parseResponse(ResponseInterface $response): array
+    {
+    }
 }
