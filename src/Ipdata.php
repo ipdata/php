@@ -83,7 +83,7 @@ class Ipdata
         ];
 
         if (!empty($fields)) {
-            $query['fields'] = implode(',',$fields);
+            $query['fields'] = implode(',', $fields);
         }
 
         $request = $this->requestFactory->createRequest('GET', sprintf('%s/%s?%s', self::BASE_URL, $ip, http_build_query($query)));
@@ -104,11 +104,12 @@ class Ipdata
         ];
 
         if (!empty($fields)) {
-            $query['fields'] = implode(',',$fields);
+            $query['fields'] = implode(',', $fields);
         }
 
-        $request = $this->requestFactory->createRequest('GET', sprintf('%s/bulk?%s', self::BASE_URL, http_build_query($query)));
+        $request = $this->requestFactory->createRequest('POST', sprintf('%s/bulk?%s', self::BASE_URL, http_build_query($query)));
         $request->getBody()->write(json_encode($ips));
+        $request = $request->withAddedHeader('Content-Type', 'text/plain');
         $response = $this->httpClient->sendRequest($request);
 
         return $this->parseResponse($response);

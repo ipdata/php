@@ -19,10 +19,11 @@ class IpdataTest extends TestCase
         $httpClient = new MockClient();
         $httpClient->addResponse($this->createResponse());
         $ipdata = $this->createIpdata($httpClient);
-        $ipdata->lookup('103.76.180.54');
+        $ipdata->lookup('69.78.70.144');
 
         $request = $httpClient->getLastRequest();
-        $this->assertEquals('/103.76.180.54', $request->getUri()->getPath());
+        $this->assertEquals('GET', $request->getMethod());
+        $this->assertEquals('/69.78.70.144', $request->getUri()->getPath());
         $this->assertEquals('api-key=secret_key', $request->getUri()->getQuery());
     }
 
@@ -31,11 +32,10 @@ class IpdataTest extends TestCase
         $httpClient = new MockClient();
         $httpClient->addResponse($this->createResponse());
         $ipdata = $this->createIpdata($httpClient);
-        $ipdata->lookup('103.76.180.54', ['continent_code']);
-
+        $ipdata->lookup('69.78.70.144', ['continent_code']);
 
         $request = $httpClient->getLastRequest();
-        $this->assertEquals('/103.76.180.54', $request->getUri()->getPath());
+        $this->assertEquals('/69.78.70.144', $request->getUri()->getPath());
         $this->assertEquals('api-key=secret_key&fields=continent_code', $request->getUri()->getQuery());
     }
 
@@ -44,11 +44,10 @@ class IpdataTest extends TestCase
         $httpClient = new MockClient();
         $httpClient->addResponse($this->createResponse());
         $ipdata = $this->createIpdata($httpClient);
-        $ipdata->lookup('103.76.180.54', ['country_name', 'threat']);
-
+        $ipdata->lookup('69.78.70.144', ['country_name', 'threat']);
 
         $request = $httpClient->getLastRequest();
-        $this->assertEquals('/103.76.180.54', $request->getUri()->getPath());
+        $this->assertEquals('/69.78.70.144', $request->getUri()->getPath());
         $this->assertEquals('api-key=secret_key&fields=country_name,threat', urldecode($request->getUri()->getQuery()));
     }
 
@@ -57,12 +56,13 @@ class IpdataTest extends TestCase
         $httpClient = new MockClient();
         $httpClient->addResponse($this->createResponse());
         $ipdata = $this->createIpdata($httpClient);
-        $ipdata->buildLookup(['8.8.8.8', '103.76.180.54']);
+        $ipdata->buildLookup(['8.8.8.8', '69.78.70.144']);
 
         $request = $httpClient->getLastRequest();
+        $this->assertEquals('POST', $request->getMethod());
         $this->assertEquals('/bulk', $request->getUri()->getPath());
         $this->assertEquals('api-key=secret_key', $request->getUri()->getQuery());
-        $this->assertEquals('["8.8.8.8","103.76.180.54"]', $request->getBody()->__toString());
+        $this->assertEquals('["8.8.8.8","69.78.70.144"]', $request->getBody()->__toString());
     }
 
     public function testBulkOneField()
@@ -70,13 +70,12 @@ class IpdataTest extends TestCase
         $httpClient = new MockClient();
         $httpClient->addResponse($this->createResponse());
         $ipdata = $this->createIpdata($httpClient);
-        $ipdata->buildLookup(['8.8.8.8', '103.76.180.54'], ['continent_code']);
-
+        $ipdata->buildLookup(['8.8.8.8', '69.78.70.144'], ['continent_code']);
 
         $request = $httpClient->getLastRequest();
         $this->assertEquals('/bulk', $request->getUri()->getPath());
         $this->assertEquals('api-key=secret_key&fields=continent_code', $request->getUri()->getQuery());
-        $this->assertEquals('["8.8.8.8","103.76.180.54"]', $request->getBody()->__toString());
+        $this->assertEquals('["8.8.8.8","69.78.70.144"]', $request->getBody()->__toString());
     }
 
     public function testBulkMultipleFields()
@@ -84,13 +83,12 @@ class IpdataTest extends TestCase
         $httpClient = new MockClient();
         $httpClient->addResponse($this->createResponse());
         $ipdata = $this->createIpdata($httpClient);
-        $ipdata->buildLookup(['8.8.8.8', '103.76.180.54'], ['country_name', 'threat']);
-
+        $ipdata->buildLookup(['8.8.8.8', '69.78.70.144'], ['country_name', 'threat']);
 
         $request = $httpClient->getLastRequest();
         $this->assertEquals('/bulk', $request->getUri()->getPath());
         $this->assertEquals('api-key=secret_key&fields=country_name,threat', urldecode($request->getUri()->getQuery()));
-        $this->assertEquals('["8.8.8.8","103.76.180.54"]', $request->getBody()->__toString());
+        $this->assertEquals('["8.8.8.8","69.78.70.144"]', $request->getBody()->__toString());
     }
 
     /**
@@ -102,17 +100,17 @@ class IpdataTest extends TestCase
         $httpClient->addResponse($this->createResponse($body, $statusCode));
         $ipdata = $this->createIpdata($httpClient);
 
-        $result = $ipdata->lookup('103.76.180.54');
+        $result = $ipdata->lookup('69.78.70.144');
         $this->assertArrayHasKey('status', $result);
         $this->assertEquals($statusCode, $result['status']);
     }
 
     public function responseProvider()
     {
-        yield '200 response' => [200, ['foo'=>'bar']];
-        yield '400 response' => [400, ['message'=>'127.0.0.1 is a private IP address']];
-        yield '401 response' => [401, ['message'=>'You have not provided a valid API Key.']];
-        yield '403 response' => [403, ['message'=>'You have either exceeded your quota or that API key does not exist...']];
+        yield '200 response' => [200, ['foo' => 'bar']];
+        yield '400 response' => [400, ['message' => '127.0.0.1 is a private IP address']];
+        yield '401 response' => [401, ['message' => 'You have not provided a valid API Key.']];
+        yield '403 response' => [403, ['message' => 'You have either exceeded your quota or that API key does not exist...']];
     }
 
     public function testParseNoneJsonResponse()
@@ -123,7 +121,7 @@ class IpdataTest extends TestCase
         $ipdata = $this->createIpdata($httpClient);
 
         $this->expectException(\RuntimeException::class);
-        $ipdata->lookup('103.76.180.54');
+        $ipdata->lookup('69.78.70.144');
     }
 
     public function testParseInvalidJsonResponse()
@@ -134,7 +132,7 @@ class IpdataTest extends TestCase
         $ipdata = $this->createIpdata($httpClient);
 
         $this->expectException(\RuntimeException::class);
-        $ipdata->lookup('103.76.180.54');
+        $ipdata->lookup('69.78.70.144');
     }
 
     public function testConstructWithDiscovery()
@@ -152,43 +150,50 @@ class IpdataTest extends TestCase
     {
         if (empty($data)) {
             $data = [
-                'ip' => '103.76.180.54',
+                'ip' => '69.78.70.144',
                 'is_eu' => false,
                 'city' => null,
                 'region' => null,
                 'region_code' => null,
-                'country_name' => 'Thailand',
-                'country_code' => 'TH',
-                'continent_name' => 'Asia',
-                'continent_code' => 'AS',
-                'latitude' => 13.7442,
-                'longitude' => 100.4608,
+                'country_name' => 'United States',
+                'country_code' => 'US',
+                'continent_name' => 'North America',
+                'continent_code' => 'NA',
+                'latitude' => 37.751,
+                'longitude' => -97.822,
                 'postal' => null,
-                'calling_code' => '66',
-                'flag' => 'https://ipdata.co/flags/th.png',
-                'emoji_flag' => "\ud83c\uddf9\ud83c\udded",
-                'emoji_unicode' => 'U+1F1F9 U+1F1ED',
+                'calling_code' => '1',
+                'flag' => 'https://ipdata.co/flags/us.png',
+                'emoji_flag' => "\ud83c\uddfa\ud83c\uddf8",
+                'emoji_unicode' => 'U+1F1FA U+1F1F8',
                 'asn' => [
-                    'asn' => 'AS23884',
-                    'name' => 'Proimage Engineering and Communication Co.,Ltd.',
-                    'domain' => 'proen.co.th',
-                    'route' => '103.76.180.0/22',
-                    'type' => 'hosting',
+                    'asn' => 'AS6167',
+                    'name' => 'Cellco Partnership DBA Verizon Wireless',
+                    'domain' => 'verizonwireless.com',
+                    'route' => '69.78.0.0/16',
+                    'type' => 'business',
                 ],
-                'languages' => [['name' => 'Thai', 'native' => "\u0e44\u0e17\u0e22 / Phasa Thai"]],
+                'carrier' => [
+                    'name' => 'Verizon',
+                    'mcc' => '310',
+                    'mnc' => '004',
+                ],
+                'languages' => [
+                    ['name' => 'English', 'native' => 'English'],
+                ],
                 'currency' => [
-                    'name' => 'Thai Baht',
-                    'code' => 'THB',
-                    'symbol' => "\u0e3f",
-                    'native' => "\u0e3f",
-                    'plural' => 'Thai baht',
+                    'name' => 'US Dollar',
+                    'code' => 'USD',
+                    'symbol' => '$',
+                    'native' => '$',
+                    'plural' => 'US dollars',
                 ],
                 'time_zone' => [
-                    'name' => 'Asia/Bangkok',
-                    'abbr' => '+07',
-                    'offset' => '+0700',
+                    'name' => 'America/Chicago',
+                    'abbr' => 'CST',
+                    'offset' => '-0600',
                     'is_dst' => false,
-                    'current_time' => '2020-01-25T18:38:28.142867+07:00',
+                    'current_time' => '2020-01-25T06:11:31.771651-06:00',
                 ],
                 'threat' => [
                     'is_tor' => false,
@@ -199,7 +204,7 @@ class IpdataTest extends TestCase
                     'is_threat' => false,
                     'is_bogon' => false,
                 ],
-                'count' => '0',
+                'count' => '3',
             ];
         }
 
