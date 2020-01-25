@@ -1,7 +1,7 @@
 {
     "name": "ipdata/api-client",
-    "description": "API client for ipdata.co",
     "type": "library",
+    "description": "API client for ipdata.co",
     "license": "MIT",
     "authors": [
         {
@@ -15,15 +15,20 @@
         "psr/http-factory": "^1.0"
     },
     "require-dev": {
-        "guzzlehttp/guzzle": "^7.0@beta",
-        "phpunit/phpunit": "^8.5",
+        "symfony/http-client": "^5.0",
+        "nyholm/psr7": "^1.2",
         "php-http/discovery": "^1.7",
-        "nyholm/psr7": "^1.2"
+        "php-http/mock-client": "^1.3",
+        "phpunit/phpunit": "^8.5"
     },
-
     "autoload": {
         "psr-4": {
             "Ipdata\\ApiClient\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ipdata\\ApiClient\\Tests\\": "tests/"
         }
     }
 }

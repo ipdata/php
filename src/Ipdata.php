@@ -12,6 +12,11 @@ use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 
+/**
+ * A small client to talk with Ipdata.co API.
+ *
+ * @author Tobias Nyholm <tobias.nyholm@gmail.com>
+ */
 class Ipdata
 {
     private const BASE_URL = 'https://api.ipdata.co';
@@ -78,7 +83,7 @@ class Ipdata
         ];
 
         if (!empty($fields)) {
-            $query['fields'] = $fields;
+            $query['fields'] = implode(',',$fields);
         }
 
         $request = $this->requestFactory->createRequest('GET', sprintf('%s/%s?%s', self::BASE_URL, $ip, http_build_query($query)));
@@ -99,7 +104,7 @@ class Ipdata
         ];
 
         if (!empty($fields)) {
-            $query['fields'] = $fields;
+            $query['fields'] = implode(',',$fields);
         }
 
         $request = $this->requestFactory->createRequest('GET', sprintf('%s/bulk?%s', self::BASE_URL, http_build_query($query)));
@@ -111,5 +116,18 @@ class Ipdata
 
     private function parseResponse(ResponseInterface $response): array
     {
+        $body = $response->getBody()->__toString();
+        if (0 !== strpos($response->getHeaderLine('Content-Type'), 'application/json')) {
+            throw new \RuntimeException('Cannot convert response to array. Response has Content-Type:'.$response->getHeaderLine('Content-Type'));
+        }
+
+        $content = json_decode($body, true);
+        if (JSON_ERROR_NONE !== json_last_error()) {
+            throw new \RuntimeException(sprintf('Error (%d) when trying to json_decode response', json_last_error()));
+        }
+
+        $content['status'] = $response->getStatusCode();
+
+        return $content;
     }
 }
