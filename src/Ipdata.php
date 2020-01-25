@@ -74,6 +74,7 @@ class Ipdata
     }
 
     /**
+     * @param array<string> $fields
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
     public function lookup(string $ip, array $fields = []): array
@@ -95,6 +96,7 @@ class Ipdata
     /**
      * Bulk lookup, requires paid subscription.
      *
+     * @param array<string> $fields
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
     public function buildLookup(array $ips, array $fields = []): array
