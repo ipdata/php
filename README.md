@@ -24,7 +24,7 @@ use Nyholm\Psr7\Factory\Psr17Factory;
 
 $httpClient = new Psr18Client();
 $psr17Factory = new Psr17Factory();
-$ipdata = new Ipdata($httpClient, 'my_api_key', $psr17Factory);
+$ipdata = new Ipdata('my_api_key', $httpClient, $psr17Factory);
 ```
 
 ## How to use

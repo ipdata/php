@@ -137,13 +137,13 @@ class IpdataTest extends TestCase
 
     public function testConstructWithDiscovery()
     {
-        $ipdata = new Ipdata(null, 'secret_key');
+        $ipdata = new Ipdata('secret_key');
         $this->assertInstanceOf(Ipdata::class, $ipdata);
     }
 
     private function createIpdata(ClientInterface $httpClient): Ipdata
     {
-        return new Ipdata($httpClient, 'secret_key', new Psr17Factory());
+        return new Ipdata('secret_key', $httpClient, new Psr17Factory());
     }
 
     private function createResponse(array $data = [], int $statusCode = 200): ResponseInterface
