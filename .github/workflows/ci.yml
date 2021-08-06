@@ -36,7 +36,7 @@ jobs:
     strategy:
       max-parallel: 10
       matrix:
-        php: ['7.2', '7.3', '7.4']
+        php: ['7.2', '7.3', '7.4', '8.0']
 
     steps:
       - name: Set up PHP
@@ -46,7 +46,6 @@ jobs:
           coverage: xdebug
           ini-values: xdebug.overload_var_dump=1
           extensions: mbstring, intl
-          tools: prestissimo
 
       - name: Checkout code
         uses: actions/checkout@v2
