@@ -184,10 +184,11 @@ class IpdataTest extends TestCase
         $this->assertEquals('eu-api.ipdata.co', $request->getUri()->getHost());
     }
 
-    public function testConstructWithDiscovery()
+    public function testConstructWithDiscoveryThrowsWhenNoClientAvailable()
     {
-        $ipdata = new Ipdata('secret_key');
-        $this->assertInstanceOf(Ipdata::class, $ipdata);
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Could not find any installed HTTP clients');
+        new Ipdata('secret_key');
     }
 
     private function createIpdata(ClientInterface $httpClient): Ipdata
