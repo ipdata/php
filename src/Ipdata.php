@@ -19,7 +19,8 @@ use Psr\Http\Message\ResponseInterface;
  */
 class Ipdata
 {
-    private const BASE_URL = 'https://api.ipdata.co';
+    private const DEFAULT_BASE_URL = 'https://api.ipdata.co';
+    public const EU_BASE_URL = 'https://eu-api.ipdata.co';
 
     /**
      * @var string|null
@@ -37,12 +38,17 @@ class Ipdata
     private $requestFactory;
 
     /**
+     * @var string
+     */
+    private $baseUrl;
+
+    /**
      * Get an instance of the API client. Give it an API key, a PSR-18 client and a PSR-17 request factory.
      *
      * @param ClientInterface|null         $httpClient     if null, we will try to use php-http/discovery to find an installed client
      * @param RequestFactoryInterface|null $requestFactory if null, we will try to use php-http/discovery to find an installed factory
      */
-    public function __construct(string $apiKey, ClientInterface $httpClient = null, RequestFactoryInterface $requestFactory = null)
+    public function __construct(string $apiKey, ClientInterface $httpClient = null, RequestFactoryInterface $requestFactory = null, string $baseUrl = self::DEFAULT_BASE_URL)
     {
         if (null === $httpClient) {
             if (!class_exists(Psr18ClientDiscovery::class)) {
@@ -71,6 +77,7 @@ class Ipdata
         $this->httpClient = $httpClient;
         $this->apiKey = $apiKey;
         $this->requestFactory = $requestFactory;
+        $this->baseUrl = $baseUrl;
     }
 
     /**
@@ -78,7 +85,7 @@ class Ipdata
      *
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
-    public function lookup(string $ip, array $fields = []): array
+    public function lookup(string $ip = '', array $fields = []): array
     {
         $query = [
             'api-key' => $this->apiKey,
@@ -88,7 +95,8 @@ class Ipdata
             $query['fields'] = implode(',', $fields);
         }
 
-        $request = $this->requestFactory->createRequest('GET', sprintf('%s/%s?%s', self::BASE_URL, $ip, http_build_query($query)));
+        $url = $ip !== '' ? sprintf('%s/%s', $this->baseUrl, $ip) : $this->baseUrl;
+        $request = $this->requestFactory->createRequest('GET', sprintf('%s?%s', $url, http_build_query($query)));
         $response = $this->httpClient->sendRequest($request);
 
         return $this->parseResponse($response);
@@ -97,11 +105,12 @@ class Ipdata
     /**
      * Bulk lookup, requires paid subscription.
      *
+     * @param array<string> $ips
      * @param array<string> $fields
      *
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
-    public function buildLookup(array $ips, array $fields = []): array
+    public function bulkLookup(array $ips, array $fields = []): array
     {
         $query = [
             'api-key' => $this->apiKey,
@@ -111,12 +120,25 @@ class Ipdata
             $query['fields'] = implode(',', $fields);
         }
 
-        $request = $this->requestFactory->createRequest('POST', sprintf('%s/bulk?%s', self::BASE_URL, http_build_query($query)));
+        $request = $this->requestFactory->createRequest('POST', sprintf('%s/bulk?%s', $this->baseUrl, http_build_query($query)));
         $request->getBody()->write(json_encode($ips));
-        $request = $request->withAddedHeader('Content-Type', 'text/plain');
+        $request = $request->withHeader('Content-Type', 'application/json');
         $response = $this->httpClient->sendRequest($request);
 
         return $this->parseResponse($response);
+    }
+
+    /**
+     * @deprecated Use bulkLookup() instead.
+     *
+     * @param array<string> $ips
+     * @param array<string> $fields
+     *
+     * @throws \Psr\Http\Client\ClientExceptionInterface
+     */
+    public function buildLookup(array $ips, array $fields = []): array
+    {
+        return $this->bulkLookup($ips, $fields);
     }
 
     private function parseResponse(ResponseInterface $response): array
