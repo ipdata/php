@@ -135,10 +135,60 @@ class IpdataTest extends TestCase
         $ipdata->lookup('69.78.70.144');
     }
 
-    public function testConstructWithDiscovery()
+    public function testCallerIpLookup()
     {
-        $ipdata = new Ipdata('secret_key');
-        $this->assertInstanceOf(Ipdata::class, $ipdata);
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = $this->createIpdata($httpClient);
+        $ipdata->lookup();
+
+        $request = $httpClient->getLastRequest();
+        $this->assertEquals('GET', $request->getMethod());
+        $this->assertEquals('', $request->getUri()->getPath());
+        $this->assertEquals('api-key=secret_key', $request->getUri()->getQuery());
+    }
+
+    public function testBulkLookup()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = $this->createIpdata($httpClient);
+        $ipdata->bulkLookup(['8.8.8.8', '69.78.70.144']);
+
+        $request = $httpClient->getLastRequest();
+        $this->assertEquals('POST', $request->getMethod());
+        $this->assertEquals('/bulk', $request->getUri()->getPath());
+        $this->assertEquals('api-key=secret_key', $request->getUri()->getQuery());
+        $this->assertEquals('["8.8.8.8","69.78.70.144"]', $request->getBody()->__toString());
+    }
+
+    public function testBulkLookupContentType()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = $this->createIpdata($httpClient);
+        $ipdata->bulkLookup(['8.8.8.8']);
+
+        $request = $httpClient->getLastRequest();
+        $this->assertEquals('application/json', $request->getHeaderLine('Content-Type'));
+    }
+
+    public function testCustomBaseUrl()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = new Ipdata('secret_key', $httpClient, new Psr17Factory(), Ipdata::EU_BASE_URL);
+        $ipdata->lookup('8.8.8.8');
+
+        $request = $httpClient->getLastRequest();
+        $this->assertEquals('eu-api.ipdata.co', $request->getUri()->getHost());
+    }
+
+    public function testConstructWithDiscoveryThrowsWhenNoClientAvailable()
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Could not find any installed HTTP clients');
+        new Ipdata('secret_key');
     }
 
     private function createIpdata(ClientInterface $httpClient): Ipdata
@@ -166,6 +216,12 @@ class IpdataTest extends TestCase
                 'flag' => 'https://ipdata.co/flags/us.png',
                 'emoji_flag' => "\ud83c\uddfa\ud83c\uddf8",
                 'emoji_unicode' => 'U+1F1FA U+1F1F8',
+                'company' => [
+                    'name' => 'Verizon Wireless',
+                    'domain' => 'verizonwireless.com',
+                    'network' => '69.78.0.0/16',
+                    'type' => 'isp',
+                ],
                 'asn' => [
                     'asn' => 'AS6167',
                     'name' => 'Cellco Partnership DBA Verizon Wireless',
@@ -197,12 +253,22 @@ class IpdataTest extends TestCase
                 ],
                 'threat' => [
                     'is_tor' => false,
+                    'is_vpn' => false,
+                    'is_icloud_relay' => false,
                     'is_proxy' => false,
+                    'is_datacenter' => false,
                     'is_anonymous' => false,
                     'is_known_attacker' => false,
                     'is_known_abuser' => false,
                     'is_threat' => false,
                     'is_bogon' => false,
+                    'blocklists' => [],
+                    'scores' => [
+                        'vpn_score' => 0,
+                        'proxy_score' => 0,
+                        'threat_score' => 0,
+                        'trust_score' => 0,
+                    ],
                 ],
                 'count' => '3',
             ];

@@ -27,9 +27,27 @@ $psr17Factory = new Psr17Factory();
 $ipdata = new Ipdata('my_api_key', $httpClient, $psr17Factory);
 ```
 
+### EU endpoint
+
+To route requests through ipdata's EU servers (Paris, Ireland and Frankfurt) for GDPR compliance, pass the EU base URL:
+
+```php
+$ipdata = new Ipdata('my_api_key', $httpClient, $psr17Factory, Ipdata::EU_BASE_URL);
+```
+
 ## How to use
 
-To send a geocode request you simply need to provide the IP address you are interested in. 
+### Look up your own IP
+
+Call `lookup()` with no arguments to get the location of the calling IP address.
+
+```php
+$data = $ipdata->lookup();
+```
+
+### Look up a specific IP
+
+To send a geocode request you simply need to provide the IP address you are interested in.
 
 ```php
 $data = $ipdata->lookup('69.78.70.144');
@@ -56,6 +74,12 @@ The output will be the response from the API server with one additional `status`
     "flag": "https:\/\/ipdata.co\/flags\/us.png",
     "emoji_flag": "\ud83c\uddfa\ud83c\uddf8",
     "emoji_unicode": "U+1F1FA U+1F1F8",
+    "company": {
+        "name": "Verizon Wireless",
+        "domain": "verizonwireless.com",
+        "network": "69.78.0.0\/16",
+        "type": "isp"
+    },
     "asn": {
         "asn": "AS6167",
         "name": "Cellco Partnership DBA Verizon Wireless",
@@ -90,12 +114,22 @@ The output will be the response from the API server with one additional `status`
     },
     "threat": {
         "is_tor": false,
+        "is_vpn": false,
+        "is_icloud_relay": false,
         "is_proxy": false,
+        "is_datacenter": false,
         "is_anonymous": false,
         "is_known_attacker": false,
         "is_known_abuser": false,
         "is_threat": false,
-        "is_bogon": false
+        "is_bogon": false,
+        "blocklists": [],
+        "scores": {
+            "vpn_score": 0,
+            "proxy_score": 0,
+            "threat_score": 0,
+            "trust_score": 0
+        }
     },
     "count": "6",
     "status": 200
@@ -125,7 +159,7 @@ If you want to look up multiple IPs at the same time you may use the `bulkLookup
 
 
 ```php
-$data = $ipdata->buildLookup(['1.1.1.1', '69.78.70.144'], ['longitude', 'latitude', 'country_name']);
+$data = $ipdata->bulkLookup(['1.1.1.1', '69.78.70.144'], ['longitude', 'latitude', 'country_name']);
 echo json_encode($data, JSON_PRETTY_PRINT);
 ```
 
