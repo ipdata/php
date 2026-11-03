@@ -202,7 +202,7 @@ The library is transport-agnostic, so "the platform" is the PSR-18 client you in
   use Ipdata\ApiClient\Ipdata;
   use Nyholm\Psr7\Factory\Psr17Factory;
 
-  $ipdata = new Ipdata('my_api_key', new Client(), new Psr17Factory(), 'https://api.ipdata.co', '2.0');
+  $ipdata = new Ipdata('my_api_key', new Client(), new Psr17Factory(), Ipdata::DEFAULT_BASE_URL, '2.0');
   ```
 
   On PHP 8 you can skip the base URL with a named argument: `new Ipdata('my_api_key', new Client(), new Psr17Factory(), httpVersion: '2.0')`.
@@ -225,6 +225,8 @@ A few things to keep in mind:
 * `Ipdata` has no `close()` method because it does not own the connections: they belong to the PSR-18 client you
   injected and are closed when that client is released, at the latest when the process ends. Timeouts, proxies
   and other transport settings are configured on that client as well.
+* Every request carries a `User-Agent: ipdata-php/<version>` header, where the version is the installed version of
+  this package as recorded by Composer.
 
 ## Available Fields
 

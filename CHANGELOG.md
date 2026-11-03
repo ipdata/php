@@ -1,5 +1,20 @@
 # Change Log
 
+## Unreleased
+
+### Added
+
+- Every request carries a `User-Agent: ipdata-php/<version>` header. The version is the installed version of `ipdata/api-client` as recorded by Composer (`Composer\InstalledVersions`, Composer 2 and newer); without it the header is `ipdata-php`.
+- `Ipdata::DEFAULT_BASE_URL` is public, so the trailing `$httpVersion` argument can be passed without repeating the endpoint: `new Ipdata('my_api_key', $httpClient, $psr17Factory, Ipdata::DEFAULT_BASE_URL, '2.0')`.
+
+### Fixed
+
+- The static-analysis workflow runs again, on a current runner image with current releases of PHPStan, Psalm, PHP-CS-Fixer and composer-normalize; the test workflow covers PHP 7.2 to 8.4 with current `actions/checkout` and `shivammathur/setup-php` releases and no longer requests the Composer 1 plugin `prestissimo`.
+- The PHP-CS-Fixer configuration moved to `.php-cs-fixer.dist.php` (PHP-CS-Fixer 3 file name and API) and excludes `vendor/` correctly; the two remaining coding-style findings in `src/Ipdata.php` are fixed.
+- Two PHPStan baseline entries that no longer matched a reported error are removed.
+- `composer.json` is normalized.
+- `bulkLookup()` throws an `\InvalidArgumentException` when the IP addresses cannot be encoded as JSON (for example invalid UTF-8) instead of failing with a `TypeError` while writing the request body.
+
 ## 0.1.3
 
 ### Added

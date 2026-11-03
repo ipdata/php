@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ipdata\ApiClient\Tests;
 
+use Composer\InstalledVersions;
 use Http\Mock\Client as MockClient;
 use Ipdata\ApiClient\Ipdata;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -376,6 +377,60 @@ class IpdataTest extends TestCase
         $requests = $httpClient->getRequests();
         $this->assertEquals('api-key=secret_key&fields=is_satellite,is_anycast,threat', urldecode($requests[0]->getUri()->getQuery()));
         $this->assertEquals('api-key=secret_key&fields=is_satellite,is_anycast', urldecode($requests[1]->getUri()->getQuery()));
+    }
+
+    public function testBulkLookupRejectsIpsThatCannotBeEncodedAsJson()
+    {
+        $httpClient = new MockClient();
+        $ipdata = $this->createIpdata($httpClient);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot encode the IP addresses as JSON');
+        try {
+            // invalid UTF-8 cannot be encoded by json_encode()
+            $ipdata->bulkLookup(["\xB1\x31"]);
+        } finally {
+            // nothing was sent
+            $this->assertCount(0, $httpClient->getRequests());
+        }
+    }
+
+    public function testDefaultBaseUrlConstantIsPublic()
+    {
+        $this->assertSame('https://api.ipdata.co', Ipdata::DEFAULT_BASE_URL);
+        $this->assertTrue((new \ReflectionClassConstant(Ipdata::class, 'DEFAULT_BASE_URL'))->isPublic());
+
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        // the constant lets callers pass the trailing $httpVersion without repeating the default endpoint
+        $ipdata = new Ipdata('secret_key', $httpClient, new Psr17Factory(), Ipdata::DEFAULT_BASE_URL, '2.0');
+        $ipdata->lookup('8.8.8.8');
+
+        $request = $httpClient->getLastRequest();
+        $this->assertSame('api.ipdata.co', $request->getUri()->getHost());
+        $this->assertSame('/8.8.8.8', $request->getUri()->getPath());
+        $this->assertSame('2.0', $request->getProtocolVersion());
+    }
+
+    public function testUserAgentHeaderIsSentWithEveryRequest()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = $this->createIpdata($httpClient);
+
+        $ipdata->lookup('8.8.8.8');
+        $ipdata->bulkLookup(['8.8.8.8']);
+
+        $requests = $httpClient->getRequests();
+        $this->assertCount(2, $requests);
+        // the version is the one Composer recorded for this package in vendor/composer/installed.php
+        $expected = 'ipdata-php/'.InstalledVersions::getPrettyVersion('ipdata/api-client');
+        $this->assertRegExp('#^ipdata-php/\S+$#', $expected);
+        $this->assertSame($expected, $requests[0]->getHeaderLine('User-Agent'));
+        $this->assertSame($expected, $requests[1]->getHeaderLine('User-Agent'));
+        // the bulk request keeps its Content-Type next to the User-Agent header
+        $this->assertSame('application/json', $requests[1]->getHeaderLine('Content-Type'));
     }
 
     private function createIpdata(ClientInterface $httpClient): Ipdata

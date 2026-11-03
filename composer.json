@@ -1,8 +1,8 @@
 {
     "name": "ipdata/api-client",
-    "type": "library",
     "description": "API client for ipdata.co",
     "license": "MIT",
+    "type": "library",
     "authors": [
         {
             "name": "Tobias Nyholm",
@@ -17,7 +17,7 @@
     "require-dev": {
         "nyholm/psr7": "^1.2",
         "php-http/discovery": "^1.7",
-        "php-http/mock-client": "^1.3",
+        "php-http/mock-client": "^1.5",
         "phpunit/phpunit": "^8.5"
     },
     "autoload": {

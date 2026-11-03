@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ipdata\ApiClient;
 
+use Composer\InstalledVersions;
 use Http\Discovery\Exception\NotFoundException;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
@@ -16,12 +17,19 @@ use Psr\Http\Message\ResponseInterface;
 /**
  * A small client to talk with Ipdata.co API.
  *
+ * @api
+ *
  * @author Tobias Nyholm <tobias.nyholm@gmail.com>
  */
 class Ipdata
 {
-    private const DEFAULT_BASE_URL = 'https://api.ipdata.co';
+    public const DEFAULT_BASE_URL = 'https://api.ipdata.co';
     public const EU_BASE_URL = 'https://eu-api.ipdata.co';
+
+    /**
+     * Name of this package on Packagist, used to read the installed version for the User-Agent header.
+     */
+    private const PACKAGE_NAME = 'ipdata/api-client';
 
     /**
      * @var string|null
@@ -49,6 +57,11 @@ class Ipdata
     private $httpVersion;
 
     /**
+     * @var string
+     */
+    private $userAgent;
+
+    /**
      * Get an instance of the API client. Give it an API key, a PSR-18 client and a PSR-17 request factory.
      *
      * The instance keeps the PSR-18 client for its whole lifetime and sends every request through it, so the
@@ -60,7 +73,7 @@ class Ipdata
      *
      * @param ClientInterface|null         $httpClient     if null, we will try to use php-http/discovery to find an installed client
      * @param RequestFactoryInterface|null $requestFactory if null, we will try to use php-http/discovery to find an installed factory
-     * @param string                       $baseUrl        API endpoint, pass self::EU_BASE_URL to use the EU servers
+     * @param string                       $baseUrl        API endpoint: self::DEFAULT_BASE_URL, or self::EU_BASE_URL to use the EU servers
      * @param string|null                  $httpVersion    HTTP protocol version applied to every request, null keeps the request factory's default
      */
     public function __construct(string $apiKey, ?ClientInterface $httpClient = null, ?RequestFactoryInterface $requestFactory = null, string $baseUrl = self::DEFAULT_BASE_URL, ?string $httpVersion = null)
@@ -94,6 +107,7 @@ class Ipdata
         $this->requestFactory = $requestFactory;
         $this->baseUrl = $baseUrl;
         $this->httpVersion = $httpVersion;
+        $this->userAgent = self::buildUserAgent();
     }
 
     /**
@@ -111,7 +125,7 @@ class Ipdata
             $query['fields'] = implode(',', $fields);
         }
 
-        $url = $ip !== '' ? sprintf('%s/%s', $this->baseUrl, $ip) : $this->baseUrl;
+        $url = '' !== $ip ? sprintf('%s/%s', $this->baseUrl, $ip) : $this->baseUrl;
         $request = $this->createRequest('GET', sprintf('%s?%s', $url, http_build_query($query)));
         $response = $this->httpClient->sendRequest($request);
 
@@ -124,6 +138,7 @@ class Ipdata
      * @param array<string> $ips
      * @param array<string> $fields
      *
+     * @throws \InvalidArgumentException                 when $ips cannot be encoded as JSON
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
     public function bulkLookup(array $ips, array $fields = []): array
@@ -136,8 +151,13 @@ class Ipdata
             $query['fields'] = implode(',', $fields);
         }
 
+        $body = json_encode($ips);
+        if (false === $body) {
+            throw new \InvalidArgumentException(sprintf('Cannot encode the IP addresses as JSON: %s', json_last_error_msg()));
+        }
+
         $request = $this->createRequest('POST', sprintf('%s/bulk?%s', $this->baseUrl, http_build_query($query)));
-        $request->getBody()->write(json_encode($ips));
+        $request->getBody()->write($body);
         $request = $request->withHeader('Content-Type', 'application/json');
         $response = $this->httpClient->sendRequest($request);
 
@@ -145,7 +165,7 @@ class Ipdata
     }
 
     /**
-     * @deprecated Use bulkLookup() instead.
+     * @deprecated use bulkLookup() instead
      *
      * @param array<string> $ips
      * @param array<string> $fields
@@ -158,16 +178,32 @@ class Ipdata
     }
 
     /**
-     * Create the request through the PSR-17 factory and apply the configured HTTP protocol version, if any.
+     * Create the request through the PSR-17 factory, add the User-Agent header and apply the configured HTTP
+     * protocol version, if any.
      */
     private function createRequest(string $method, string $url): RequestInterface
     {
-        $request = $this->requestFactory->createRequest($method, $url);
+        $request = $this->requestFactory->createRequest($method, $url)->withHeader('User-Agent', $this->userAgent);
         if (null !== $this->httpVersion) {
             $request = $request->withProtocolVersion($this->httpVersion);
         }
 
         return $request;
+    }
+
+    /**
+     * Value of the User-Agent header: "ipdata-php/<version>", where the version is the installed version of this
+     * package as recorded by Composer 2 in vendor/composer/installed.php. When Composer's runtime API is not
+     * available the header is sent as "ipdata-php".
+     */
+    private static function buildUserAgent(): string
+    {
+        $version = null;
+        if (class_exists(InstalledVersions::class) && InstalledVersions::isInstalled(self::PACKAGE_NAME)) {
+            $version = InstalledVersions::getPrettyVersion(self::PACKAGE_NAME);
+        }
+
+        return null === $version ? 'ipdata-php' : 'ipdata-php/'.$version;
     }
 
     private function parseResponse(ResponseInterface $response): array
