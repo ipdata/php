@@ -10,6 +10,7 @@
 ### Fixed
 
 - The PHP-CS-Fixer configuration moved to `.php-cs-fixer.dist.php` (PHP-CS-Fixer 3 file name and API) and excludes `vendor/` correctly; the two remaining coding-style findings in `src/Ipdata.php` are fixed.
+- Two PHPStan baseline entries that no longer matched a reported error are removed.
 - `bulkLookup()` throws an `\InvalidArgumentException` when the IP addresses cannot be encoded as JSON (for example invalid UTF-8) instead of failing with a `TypeError` while writing the request body.
 
 ## 0.1.3
