@@ -1,8 +1,8 @@
 {
     "name": "ipdata/api-client",
-    "type": "library",
     "description": "API client for ipdata.co",
     "license": "MIT",
+    "type": "library",
     "authors": [
         {
             "name": "Tobias Nyholm",
