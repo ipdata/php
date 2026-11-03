@@ -378,6 +378,23 @@ class IpdataTest extends TestCase
         $this->assertEquals('api-key=secret_key&fields=is_satellite,is_anycast', urldecode($requests[1]->getUri()->getQuery()));
     }
 
+    public function testDefaultBaseUrlConstantIsPublic()
+    {
+        $this->assertSame('https://api.ipdata.co', Ipdata::DEFAULT_BASE_URL);
+        $this->assertTrue((new \ReflectionClassConstant(Ipdata::class, 'DEFAULT_BASE_URL'))->isPublic());
+
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        // the constant lets callers pass the trailing $httpVersion without repeating the default endpoint
+        $ipdata = new Ipdata('secret_key', $httpClient, new Psr17Factory(), Ipdata::DEFAULT_BASE_URL, '2.0');
+        $ipdata->lookup('8.8.8.8');
+
+        $request = $httpClient->getLastRequest();
+        $this->assertSame('api.ipdata.co', $request->getUri()->getHost());
+        $this->assertSame('/8.8.8.8', $request->getUri()->getPath());
+        $this->assertSame('2.0', $request->getProtocolVersion());
+    }
+
     private function createIpdata(ClientInterface $httpClient): Ipdata
     {
         return new Ipdata('secret_key', $httpClient, new Psr17Factory());

@@ -20,7 +20,7 @@ use Psr\Http\Message\ResponseInterface;
  */
 class Ipdata
 {
-    private const DEFAULT_BASE_URL = 'https://api.ipdata.co';
+    public const DEFAULT_BASE_URL = 'https://api.ipdata.co';
     public const EU_BASE_URL = 'https://eu-api.ipdata.co';
 
     /**
@@ -60,7 +60,7 @@ class Ipdata
      *
      * @param ClientInterface|null         $httpClient     if null, we will try to use php-http/discovery to find an installed client
      * @param RequestFactoryInterface|null $requestFactory if null, we will try to use php-http/discovery to find an installed factory
-     * @param string                       $baseUrl        API endpoint, pass self::EU_BASE_URL to use the EU servers
+     * @param string                       $baseUrl        API endpoint: self::DEFAULT_BASE_URL, or self::EU_BASE_URL to use the EU servers
      * @param string|null                  $httpVersion    HTTP protocol version applied to every request, null keeps the request factory's default
      */
     public function __construct(string $apiKey, ?ClientInterface $httpClient = null, ?RequestFactoryInterface $requestFactory = null, string $baseUrl = self::DEFAULT_BASE_URL, ?string $httpVersion = null)

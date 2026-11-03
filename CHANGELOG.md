@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- `Ipdata::DEFAULT_BASE_URL` is public, so the trailing `$httpVersion` argument can be passed without repeating the endpoint: `new Ipdata('my_api_key', $httpClient, $psr17Factory, Ipdata::DEFAULT_BASE_URL, '2.0')`.
+
 ### Fixed
 
 - The PHP-CS-Fixer configuration moved to `.php-cs-fixer.dist.php` (PHP-CS-Fixer 3 file name and API) and excludes `vendor/` correctly; the two remaining coding-style findings in `src/Ipdata.php` are fixed.
