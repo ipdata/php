@@ -4,6 +4,7 @@
 
 ### Added
 
+- Every request carries a `User-Agent: ipdata-php/<version>` header. The version is the installed version of `ipdata/api-client` as recorded by Composer (`Composer\InstalledVersions`, Composer 2 and newer); without it the header is `ipdata-php`.
 - `Ipdata::DEFAULT_BASE_URL` is public, so the trailing `$httpVersion` argument can be passed without repeating the endpoint: `new Ipdata('my_api_key', $httpClient, $psr17Factory, Ipdata::DEFAULT_BASE_URL, '2.0')`.
 
 ### Fixed

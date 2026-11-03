@@ -225,6 +225,8 @@ A few things to keep in mind:
 * `Ipdata` has no `close()` method because it does not own the connections: they belong to the PSR-18 client you
   injected and are closed when that client is released, at the latest when the process ends. Timeouts, proxies
   and other transport settings are configured on that client as well.
+* Every request carries a `User-Agent: ipdata-php/<version>` header, where the version is the installed version of
+  this package as recorded by Composer.
 
 ## Available Fields
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ipdata\ApiClient;
 
+use Composer\InstalledVersions;
 use Http\Discovery\Exception\NotFoundException;
 use Http\Discovery\Psr17FactoryDiscovery;
 use Http\Discovery\Psr18ClientDiscovery;
@@ -22,6 +23,11 @@ class Ipdata
 {
     public const DEFAULT_BASE_URL = 'https://api.ipdata.co';
     public const EU_BASE_URL = 'https://eu-api.ipdata.co';
+
+    /**
+     * Name of this package on Packagist, used to read the installed version for the User-Agent header.
+     */
+    private const PACKAGE_NAME = 'ipdata/api-client';
 
     /**
      * @var string|null
@@ -47,6 +53,11 @@ class Ipdata
      * @var string|null
      */
     private $httpVersion;
+
+    /**
+     * @var string
+     */
+    private $userAgent;
 
     /**
      * Get an instance of the API client. Give it an API key, a PSR-18 client and a PSR-17 request factory.
@@ -94,6 +105,7 @@ class Ipdata
         $this->requestFactory = $requestFactory;
         $this->baseUrl = $baseUrl;
         $this->httpVersion = $httpVersion;
+        $this->userAgent = self::buildUserAgent();
     }
 
     /**
@@ -158,16 +170,32 @@ class Ipdata
     }
 
     /**
-     * Create the request through the PSR-17 factory and apply the configured HTTP protocol version, if any.
+     * Create the request through the PSR-17 factory, add the User-Agent header and apply the configured HTTP
+     * protocol version, if any.
      */
     private function createRequest(string $method, string $url): RequestInterface
     {
-        $request = $this->requestFactory->createRequest($method, $url);
+        $request = $this->requestFactory->createRequest($method, $url)->withHeader('User-Agent', $this->userAgent);
         if (null !== $this->httpVersion) {
             $request = $request->withProtocolVersion($this->httpVersion);
         }
 
         return $request;
+    }
+
+    /**
+     * Value of the User-Agent header: "ipdata-php/<version>", where the version is the installed version of this
+     * package as recorded by Composer 2 in vendor/composer/installed.php. When Composer's runtime API is not
+     * available the header is sent as "ipdata-php".
+     */
+    private static function buildUserAgent(): string
+    {
+        $version = null;
+        if (class_exists(InstalledVersions::class) && InstalledVersions::isInstalled(self::PACKAGE_NAME)) {
+            $version = InstalledVersions::getPrettyVersion(self::PACKAGE_NAME);
+        }
+
+        return null === $version ? 'ipdata-php' : 'ipdata-php/'.$version;
     }
 
     private function parseResponse(ResponseInterface $response): array

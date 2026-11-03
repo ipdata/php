@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ipdata\ApiClient\Tests;
 
+use Composer\InstalledVersions;
 use Http\Mock\Client as MockClient;
 use Ipdata\ApiClient\Ipdata;
 use Nyholm\Psr7\Factory\Psr17Factory;
@@ -393,6 +394,27 @@ class IpdataTest extends TestCase
         $this->assertSame('api.ipdata.co', $request->getUri()->getHost());
         $this->assertSame('/8.8.8.8', $request->getUri()->getPath());
         $this->assertSame('2.0', $request->getProtocolVersion());
+    }
+
+    public function testUserAgentHeaderIsSentWithEveryRequest()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = $this->createIpdata($httpClient);
+
+        $ipdata->lookup('8.8.8.8');
+        $ipdata->bulkLookup(['8.8.8.8']);
+
+        $requests = $httpClient->getRequests();
+        $this->assertCount(2, $requests);
+        // the version is the one Composer recorded for this package in vendor/composer/installed.php
+        $expected = 'ipdata-php/'.InstalledVersions::getPrettyVersion('ipdata/api-client');
+        $this->assertRegExp('#^ipdata-php/\S+$#', $expected);
+        $this->assertSame($expected, $requests[0]->getHeaderLine('User-Agent'));
+        $this->assertSame($expected, $requests[1]->getHeaderLine('User-Agent'));
+        // the bulk request keeps its Content-Type next to the User-Agent header
+        $this->assertSame('application/json', $requests[1]->getHeaderLine('Content-Type'));
     }
 
     private function createIpdata(ClientInterface $httpClient): Ipdata
