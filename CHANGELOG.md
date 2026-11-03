@@ -9,6 +9,7 @@
 
 ### Fixed
 
+- The static-analysis workflow runs again, on a current runner image with current releases of PHPStan, Psalm, PHP-CS-Fixer and composer-normalize; the test workflow covers PHP 7.2 to 8.4 with current `actions/checkout` and `shivammathur/setup-php` releases and no longer requests the Composer 1 plugin `prestissimo`.
 - The PHP-CS-Fixer configuration moved to `.php-cs-fixer.dist.php` (PHP-CS-Fixer 3 file name and API) and excludes `vendor/` correctly; the two remaining coding-style findings in `src/Ipdata.php` are fixed.
 - Two PHPStan baseline entries that no longer matched a reported error are removed.
 - `composer.json` is normalized.
