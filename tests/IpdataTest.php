@@ -191,6 +191,79 @@ class IpdataTest extends TestCase
         new Ipdata('secret_key');
     }
 
+    public function testHttpVersionIsAppliedToLookupRequests()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = new Ipdata('secret_key', $httpClient, new Psr17Factory(), 'https://api.ipdata.co', '2.0');
+        $ipdata->lookup('8.8.8.8');
+
+        $request = $httpClient->getLastRequest();
+        $this->assertEquals('GET', $request->getMethod());
+        $this->assertEquals('/8.8.8.8', $request->getUri()->getPath());
+        $this->assertEquals('2.0', $request->getProtocolVersion());
+    }
+
+    public function testHttpVersionIsAppliedToBulkLookupRequests()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = new Ipdata('secret_key', $httpClient, new Psr17Factory(), 'https://api.ipdata.co', '2.0');
+        $ipdata->bulkLookup(['8.8.8.8', '69.78.70.144']);
+
+        $request = $httpClient->getLastRequest();
+        $this->assertEquals('POST', $request->getMethod());
+        $this->assertEquals('/bulk', $request->getUri()->getPath());
+        $this->assertEquals('2.0', $request->getProtocolVersion());
+        $this->assertEquals('["8.8.8.8","69.78.70.144"]', $request->getBody()->__toString());
+    }
+
+    public function testHttpVersionIsLeftToTheRequestFactoryWhenNull()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = new Ipdata('secret_key', $httpClient, new Psr17Factory(), 'https://api.ipdata.co', null);
+        $ipdata->lookup('8.8.8.8');
+        $ipdata->bulkLookup(['8.8.8.8']);
+
+        $requests = $httpClient->getRequests();
+        $this->assertCount(2, $requests);
+        // nyholm/psr7 creates HTTP/1.1 requests; without a configured version the client must not change that
+        $this->assertEquals('1.1', $requests[0]->getProtocolVersion());
+        $this->assertEquals('1.1', $requests[1]->getProtocolVersion());
+    }
+
+    public function testConsecutiveCallsAreSentThroughTheSameClient()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $httpClient->addResponse($this->createResponse());
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = $this->createIpdata($httpClient);
+
+        $ipdata->lookup('8.8.8.8');
+        $ipdata->lookup();
+        $ipdata->bulkLookup(['8.8.8.8', '69.78.70.144']);
+
+        $requests = $httpClient->getRequests();
+        $this->assertCount(3, $requests);
+        $this->assertEquals('/8.8.8.8', $requests[0]->getUri()->getPath());
+        $this->assertEquals('', $requests[1]->getUri()->getPath());
+        $this->assertEquals('/bulk', $requests[2]->getUri()->getPath());
+    }
+
+    public function testExplicitNullRequestFactoryFallsBackToDiscovery()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = new Ipdata('secret_key', $httpClient, null);
+        $result = $ipdata->lookup('8.8.8.8');
+
+        $this->assertEquals(200, $result['status']);
+        $this->assertEquals('/8.8.8.8', $httpClient->getLastRequest()->getUri()->getPath());
+    }
+
     private function createIpdata(ClientInterface $httpClient): Ipdata
     {
         return new Ipdata('secret_key', $httpClient, new Psr17Factory());

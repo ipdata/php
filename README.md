@@ -179,6 +179,53 @@ echo json_encode($data, JSON_PRETTY_PRINT);
 }
 ```
 
+## Connection reuse and HTTP/2
+
+An `Ipdata` instance keeps the PSR-18 client you give it for as long as it lives and sends every request through
+it, so the persistent HTTPS connections of that HTTP client are reused across lookups. Create one `Ipdata` per
+process (or one per API key or endpoint), register it as a service in your container, and reuse it for every
+lookup: each new client (and each new HTTP client) pays a fresh TLS handshake, which costs more than the lookup
+itself. Requests to api.ipdata.co are multiplexed over HTTP/2 when the platform negotiates it, and fall back to
+HTTP/1.1 keep-alive otherwise.
+
+The library is transport-agnostic, so "the platform" is the PSR-18 client you inject:
+
+* **Symfony HttpClient with ext-curl** (`Symfony\Component\HttpClient\Psr18Client`, used in the examples above):
+  nothing to configure. One `Psr18Client` keeps its connections alive and negotiates HTTP/2 through ALPN on its
+  own. By default it also ignores the protocol version of the PSR-7 request, so leave `$httpVersion` at `null`.
+* **Guzzle and php-http/curl-client** honour the protocol version of the PSR-7 request. Opt in to HTTP/2 by
+  passing `'2.0'` as the trailing `$httpVersion` constructor argument; curl then negotiates HTTP/2 through ALPN
+  and falls back to HTTP/1.1 when the server does not offer it:
+
+  ```php
+  use GuzzleHttp\Client;
+  use Ipdata\ApiClient\Ipdata;
+  use Nyholm\Psr7\Factory\Psr17Factory;
+
+  $ipdata = new Ipdata('my_api_key', new Client(), new Psr17Factory(), 'https://api.ipdata.co', '2.0');
+  ```
+
+  On PHP 8 you can skip the base URL with a named argument: `new Ipdata('my_api_key', new Client(), new Psr17Factory(), httpVersion: '2.0')`.
+  Without the argument the request keeps the version set by your PSR-17 factory (HTTP/1.1 with `nyholm/psr7`),
+  and the connection is still kept alive between calls on the same instance.
+* **Stream-based clients** (Guzzle without ext-curl, php-http/socket-client, anything built on PHP's `http://`
+  stream wrapper) must keep `$httpVersion` at `null`: they write the version literally into the request line,
+  and a request line reading `HTTP/2.0` breaks the request.
+
+A few things to keep in mind:
+
+* Under PHP-FPM or mod_php, PHP destroys all objects, and with them the curl handles, at the end of each PHP
+  request, so a connection is only reused by the lookups made within one PHP request. Long-running workers
+  (Symfony Messenger consumers, queue workers, RoadRunner, FrankenPHP worker mode, Swoole, CLI daemons) that keep
+  the same `Ipdata` instance benefit fully.
+* The PSR-18 API is synchronous, one request at a time, so HTTP/2 multiplexing brings nothing here: the saving is
+  the TLS handshake on every call after the first.
+* PHP runs one request per process, so there is no thread-safety concern. After `pcntl_fork()`, build a new
+  `Ipdata` and HTTP client in the child instead of sharing the parent's sockets.
+* `Ipdata` has no `close()` method because it does not own the connections: they belong to the PSR-18 client you
+  injected and are closed when that client is released, at the latest when the process ends. Timeouts, proxies
+  and other transport settings are configured on that client as well.
+
 ## Available Fields
 
 A list of all the fields returned by the API is maintained at [Response Fields](https://docs.ipdata.co/api-reference/response-fields)

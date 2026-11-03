@@ -10,6 +10,7 @@ use Http\Discovery\Psr18ClientDiscovery;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 /**
@@ -43,12 +44,26 @@ class Ipdata
     private $baseUrl;
 
     /**
+     * @var string|null
+     */
+    private $httpVersion;
+
+    /**
      * Get an instance of the API client. Give it an API key, a PSR-18 client and a PSR-17 request factory.
+     *
+     * The instance keeps the PSR-18 client for its whole lifetime and sends every request through it, so the
+     * persistent connections of that client are reused. Create one Ipdata per process and reuse it for every lookup.
+     *
+     * Pass $httpVersion = '2.0' to make curl based clients that honour the PSR-7 protocol version (Guzzle,
+     * php-http/curl-client) negotiate HTTP/2. Leave it null for Symfony HttpClient, which negotiates HTTP/2 on its
+     * own, and for stream based clients, which would write "HTTP/2.0" literally into the request line.
      *
      * @param ClientInterface|null         $httpClient     if null, we will try to use php-http/discovery to find an installed client
      * @param RequestFactoryInterface|null $requestFactory if null, we will try to use php-http/discovery to find an installed factory
+     * @param string                       $baseUrl        API endpoint, pass self::EU_BASE_URL to use the EU servers
+     * @param string|null                  $httpVersion    HTTP protocol version applied to every request, null keeps the request factory's default
      */
-    public function __construct(string $apiKey, ClientInterface $httpClient = null, RequestFactoryInterface $requestFactory = null, string $baseUrl = self::DEFAULT_BASE_URL)
+    public function __construct(string $apiKey, ?ClientInterface $httpClient = null, ?RequestFactoryInterface $requestFactory = null, string $baseUrl = self::DEFAULT_BASE_URL, ?string $httpVersion = null)
     {
         if (null === $httpClient) {
             if (!class_exists(Psr18ClientDiscovery::class)) {
@@ -78,6 +93,7 @@ class Ipdata
         $this->apiKey = $apiKey;
         $this->requestFactory = $requestFactory;
         $this->baseUrl = $baseUrl;
+        $this->httpVersion = $httpVersion;
     }
 
     /**
@@ -96,7 +112,7 @@ class Ipdata
         }
 
         $url = $ip !== '' ? sprintf('%s/%s', $this->baseUrl, $ip) : $this->baseUrl;
-        $request = $this->requestFactory->createRequest('GET', sprintf('%s?%s', $url, http_build_query($query)));
+        $request = $this->createRequest('GET', sprintf('%s?%s', $url, http_build_query($query)));
         $response = $this->httpClient->sendRequest($request);
 
         return $this->parseResponse($response);
@@ -120,7 +136,7 @@ class Ipdata
             $query['fields'] = implode(',', $fields);
         }
 
-        $request = $this->requestFactory->createRequest('POST', sprintf('%s/bulk?%s', $this->baseUrl, http_build_query($query)));
+        $request = $this->createRequest('POST', sprintf('%s/bulk?%s', $this->baseUrl, http_build_query($query)));
         $request->getBody()->write(json_encode($ips));
         $request = $request->withHeader('Content-Type', 'application/json');
         $response = $this->httpClient->sendRequest($request);
@@ -139,6 +155,19 @@ class Ipdata
     public function buildLookup(array $ips, array $fields = []): array
     {
         return $this->bulkLookup($ips, $fields);
+    }
+
+    /**
+     * Create the request through the PSR-17 factory and apply the configured HTTP protocol version, if any.
+     */
+    private function createRequest(string $method, string $url): RequestInterface
+    {
+        $request = $this->requestFactory->createRequest($method, $url);
+        if (null !== $this->httpVersion) {
+            $request = $request->withProtocolVersion($this->httpVersion);
+        }
+
+        return $request;
     }
 
     private function parseResponse(ResponseInterface $response): array
