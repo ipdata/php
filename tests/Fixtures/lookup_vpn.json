@@ -1,0 +1,18 @@
+{
+  "ip": "187.13.250.1",
+  "is_eu": false,
+  "threat": {
+    "is_tor": false, "is_vpn": true, "is_icloud_relay": false, "is_proxy": false, "is_datacenter": true,
+    "is_anonymous": true, "is_known_attacker": true, "is_known_abuser": true, "is_threat": true, "is_bogon": false,
+    "blocklists": [
+      { "days_seen": 2, "first_seen": "2026-10-31", "last_seen": "2026-11-02", "name": "Gluetun", "site": "https://github.com/qdm12/gluetun", "type": "vpn" },
+      { "days_seen": 1, "first_seen": "2026-11-02", "last_seen": "2026-11-02", "name": "ipdata", "site": "https://ipdata.co", "type": "cloud" },
+      { "name": "ipdata", "site": "https://ipdata.co", "type": "vpn" },
+      { "days_seen": 2, "first_seen": "2026-10-31", "last_seen": "2026-11-02", "name": "NordVPN", "site": "https://nordvpn.com", "type": "vpn" },
+      { "days_seen": 2, "first_seen": "2026-10-31", "last_seen": "2026-11-02", "name": "Wikimedia Global Blocklist", "site": "https://wikimedia.org", "type": "general" },
+      { "days_seen": 2, "first_seen": "2026-10-31", "last_seen": "2026-11-02", "name": "X4BNet", "site": "https://github.com/X4BNet/lists_vpn", "type": "vpn" }
+    ],
+    "scores": { "vpn_score": 100, "proxy_score": 99, "threat_score": 100, "trust_score": 0 }
+  },
+  "count": "0"
+}
