@@ -230,6 +230,16 @@ A few things to keep in mind:
 
 A list of all the fields returned by the API is maintained at [Response Fields](https://docs.ipdata.co/api-reference/response-fields)
 
+The client returns the decoded JSON unchanged, so new fields reach you as soon as the API sends them. Recent additions:
+
+- `is_satellite` (boolean): the IP address belongs to a satellite internet provider. Present only when `true`; the key is omitted otherwise, so read it as `$data['is_satellite'] ?? false`.
+- `is_anycast` (boolean): the IP address is an anycast address announced from several locations. Present only when `true`; read it as `$data['is_anycast'] ?? false`.
+- `threat.blocklists[].first_seen` (string, `YYYY-MM-DD`, UTC): the first day the address appeared on that blocklist.
+- `threat.blocklists[].last_seen` (string, `YYYY-MM-DD`, UTC): the most recent day the address appeared on that blocklist.
+- `threat.blocklists[].days_seen` (integer): the number of days the address has been seen on that blocklist.
+
+Some feeds, for example ipdata's own vpn feed, carry none of the three blocklist date fields, so read them as `$entry['first_seen'] ?? null`. The dates are passed through as strings; the client does not parse them. `is_satellite` and `is_anycast` can also be requested through the `$fields` argument of `lookup()` and `bulkLookup()`.
+
 ## Errors
 
 A list of possible errors is available at [Status Codes](https://docs.ipdata.co/api-reference/status-codes)

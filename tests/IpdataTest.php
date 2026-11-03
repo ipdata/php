@@ -264,6 +264,120 @@ class IpdataTest extends TestCase
         $this->assertEquals('/8.8.8.8', $httpClient->getLastRequest()->getUri()->getPath());
     }
 
+    public function testSatelliteFlagIsPassedThrough()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createFixtureResponse('lookup_satellite'));
+        $ipdata = $this->createIpdata($httpClient);
+
+        $result = $ipdata->lookup('98.97.34.0');
+
+        $this->assertSame(200, $result['status']);
+        $this->assertTrue($result['is_satellite']);
+        $this->assertFalse($result['is_eu']);
+        // the API includes is_satellite and is_anycast only when they are true, so the key is absent here
+        $this->assertArrayNotHasKey('is_anycast', $result);
+        $this->assertFalse($result['is_anycast'] ?? false);
+        $this->assertSame('AS14593', $result['asn']['asn']);
+        $this->assertSame([], $result['threat']['blocklists']);
+    }
+
+    public function testAnycastFlagAndDatedBlocklistEntriesArePassedThrough()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createFixtureResponse('lookup_anycast'));
+        $ipdata = $this->createIpdata($httpClient);
+
+        $result = $ipdata->lookup('8.8.8.8');
+
+        $this->assertTrue($result['is_anycast']);
+        $this->assertArrayNotHasKey('is_satellite', $result);
+        $this->assertFalse($result['is_satellite'] ?? false);
+        $this->assertNull($result['city']);
+        $this->assertTrue($result['threat']['is_datacenter']);
+
+        $blocklists = $result['threat']['blocklists'];
+        $this->assertCount(2, $blocklists);
+        $this->assertSame([
+            'days_seen' => 1,
+            'first_seen' => '2026-11-02',
+            'last_seen' => '2026-11-02',
+            'name' => 'ipdata',
+            'site' => 'https://ipdata.co',
+            'type' => 'cloud',
+        ], $blocklists[0]);
+        $this->assertSame('open_resolvers', $blocklists[1]['type']);
+        // the dates stay plain YYYY-MM-DD strings and days_seen stays an integer
+        $this->assertSame('2026-11-02', $blocklists[1]['first_seen']);
+        $this->assertSame('2026-11-02', $blocklists[1]['last_seen']);
+        $this->assertSame(1, $blocklists[1]['days_seen']);
+    }
+
+    public function testBlocklistEntriesWithoutDatesArePassedThrough()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createFixtureResponse('lookup_vpn'));
+        $ipdata = $this->createIpdata($httpClient);
+
+        $result = $ipdata->lookup('187.13.250.1');
+
+        // neither flag is present for this address
+        $this->assertArrayNotHasKey('is_satellite', $result);
+        $this->assertArrayNotHasKey('is_anycast', $result);
+        $this->assertTrue($result['threat']['is_vpn']);
+
+        $blocklists = $result['threat']['blocklists'];
+        $this->assertCount(6, $blocklists);
+        $this->assertSame(2, $blocklists[0]['days_seen']);
+        $this->assertSame('2026-10-31', $blocklists[0]['first_seen']);
+        $this->assertSame('2026-11-02', $blocklists[0]['last_seen']);
+        // some feeds, for example ipdata's own vpn feed, carry none of the three date fields
+        $this->assertSame(['name' => 'ipdata', 'site' => 'https://ipdata.co', 'type' => 'vpn'], $blocklists[2]);
+        $this->assertArrayNotHasKey('first_seen', $blocklists[2]);
+        $this->assertArrayNotHasKey('last_seen', $blocklists[2]);
+        $this->assertArrayNotHasKey('days_seen', $blocklists[2]);
+        $this->assertNull($blocklists[2]['first_seen'] ?? null);
+    }
+
+    public function testBulkLookupItemsCarryTheNewFields()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse([
+            $this->loadFixture('lookup_satellite'),
+            $this->loadFixture('lookup_anycast'),
+            $this->loadFixture('lookup_vpn'),
+        ]));
+        $ipdata = $this->createIpdata($httpClient);
+
+        $result = $ipdata->bulkLookup(['98.97.34.0', '8.8.8.8', '187.13.250.1']);
+
+        $this->assertSame(200, $result['status']);
+        $this->assertTrue($result[0]['is_satellite']);
+        $this->assertArrayNotHasKey('is_anycast', $result[0]);
+        $this->assertTrue($result[1]['is_anycast']);
+        $this->assertArrayNotHasKey('is_satellite', $result[1]);
+        $this->assertSame('2026-11-02', $result[1]['threat']['blocklists'][0]['first_seen']);
+        $this->assertSame(1, $result[1]['threat']['blocklists'][0]['days_seen']);
+        $this->assertArrayNotHasKey('is_satellite', $result[2]);
+        $this->assertArrayNotHasKey('is_anycast', $result[2]);
+        $this->assertArrayNotHasKey('first_seen', $result[2]['threat']['blocklists'][2]);
+    }
+
+    public function testNewFieldNamesCanBeRequested()
+    {
+        $httpClient = new MockClient();
+        $httpClient->addResponse($this->createResponse());
+        $httpClient->addResponse($this->createResponse());
+        $ipdata = $this->createIpdata($httpClient);
+
+        $ipdata->lookup('8.8.8.8', ['is_satellite', 'is_anycast', 'threat']);
+        $ipdata->bulkLookup(['8.8.8.8'], ['is_satellite', 'is_anycast']);
+
+        $requests = $httpClient->getRequests();
+        $this->assertEquals('api-key=secret_key&fields=is_satellite,is_anycast,threat', urldecode($requests[0]->getUri()->getQuery()));
+        $this->assertEquals('api-key=secret_key&fields=is_satellite,is_anycast', urldecode($requests[1]->getUri()->getQuery()));
+    }
+
     private function createIpdata(ClientInterface $httpClient): Ipdata
     {
         return new Ipdata('secret_key', $httpClient, new Psr17Factory());
@@ -348,5 +462,18 @@ class IpdataTest extends TestCase
         }
 
         return new Response($statusCode, ['Content-Type' => 'application/json; charset=utf-8'], json_encode($data));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function loadFixture(string $name): array
+    {
+        return json_decode(file_get_contents(__DIR__.'/Fixtures/'.$name.'.json'), true);
+    }
+
+    private function createFixtureResponse(string $name, int $statusCode = 200): ResponseInterface
+    {
+        return new Response($statusCode, ['Content-Type' => 'application/json; charset=utf-8'], file_get_contents(__DIR__.'/Fixtures/'.$name.'.json'));
     }
 }

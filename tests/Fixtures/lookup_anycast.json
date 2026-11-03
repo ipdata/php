@@ -1,0 +1,35 @@
+{
+  "ip": "8.8.8.8",
+  "is_anycast": true,
+  "is_eu": false,
+  "city": null,
+  "region": null,
+  "region_code": null,
+  "region_type": null,
+  "country_name": "United States",
+  "country_code": "US",
+  "continent_name": "North America",
+  "continent_code": "NA",
+  "latitude": 39.7599983215332,
+  "longitude": -98.5,
+  "postal": null,
+  "calling_code": "1",
+  "flag": "https://ipdata.co/flags/us.png",
+  "emoji_flag": "🇺🇸",
+  "emoji_unicode": "U+1F1FA U+1F1F8",
+  "asn": { "asn": "AS15169", "name": "Google LLC", "domain": "about.google", "route": "8.8.8.0/24", "type": "hosting" },
+  "company": { "name": "Google LLC", "domain": "about.google", "network": "8.8.8.0/24", "type": "hosting" },
+  "languages": [ { "name": "English", "native": "English", "code": "en" } ],
+  "currency": { "name": "US Dollar", "code": "USD", "symbol": "$", "native": "$", "plural": "US dollars" },
+  "time_zone": { "name": null, "abbr": null, "offset": null, "is_dst": null, "current_time": null },
+  "threat": {
+    "is_tor": false, "is_vpn": false, "is_icloud_relay": false, "is_proxy": false, "is_datacenter": true,
+    "is_anonymous": false, "is_known_attacker": false, "is_known_abuser": false, "is_threat": false, "is_bogon": false,
+    "blocklists": [
+      { "days_seen": 1, "first_seen": "2026-11-02", "last_seen": "2026-11-02", "name": "ipdata", "site": "https://ipdata.co", "type": "cloud" },
+      { "days_seen": 1, "first_seen": "2026-11-02", "last_seen": "2026-11-02", "name": "ipdata", "site": "https://ipdata.co", "type": "open_resolvers" }
+    ],
+    "scores": { "vpn_score": 100, "proxy_score": 93, "threat_score": 100, "trust_score": 2 }
+  },
+  "count": "0"
+}

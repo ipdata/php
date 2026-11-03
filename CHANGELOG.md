@@ -6,6 +6,7 @@
 
 - Opt-in HTTP protocol version: the constructor takes a trailing `?string $httpVersion` (for example `'2.0'`) that is applied to every request with `withProtocolVersion()`, so curl based PSR-18 clients such as Guzzle and php-http/curl-client negotiate HTTP/2. `null` (the default) leaves the version to the request factory.
 - README section "Connection reuse and HTTP/2": reuse one `Ipdata` and one PSR-18 client per process to keep the HTTPS connection alive.
+- Documentation and tests for the new API response fields: top-level `is_satellite` and `is_anycast` (present only when `true`) and `first_seen`, `last_seen` (`YYYY-MM-DD`, UTC) and `days_seen` on `threat.blocklists` entries (absent for some feeds). The client passes them through unchanged.
 
 ### Fixed
 
