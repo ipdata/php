@@ -136,6 +136,7 @@ class Ipdata
      * @param array<string> $ips
      * @param array<string> $fields
      *
+     * @throws \InvalidArgumentException                 when $ips cannot be encoded as JSON
      * @throws \Psr\Http\Client\ClientExceptionInterface
      */
     public function bulkLookup(array $ips, array $fields = []): array
@@ -148,8 +149,13 @@ class Ipdata
             $query['fields'] = implode(',', $fields);
         }
 
+        $body = json_encode($ips);
+        if (false === $body) {
+            throw new \InvalidArgumentException(sprintf('Cannot encode the IP addresses as JSON: %s', json_last_error_msg()));
+        }
+
         $request = $this->createRequest('POST', sprintf('%s/bulk?%s', $this->baseUrl, http_build_query($query)));
-        $request->getBody()->write(json_encode($ips));
+        $request->getBody()->write($body);
         $request = $request->withHeader('Content-Type', 'application/json');
         $response = $this->httpClient->sendRequest($request);
 

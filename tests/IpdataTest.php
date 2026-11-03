@@ -379,6 +379,22 @@ class IpdataTest extends TestCase
         $this->assertEquals('api-key=secret_key&fields=is_satellite,is_anycast', urldecode($requests[1]->getUri()->getQuery()));
     }
 
+    public function testBulkLookupRejectsIpsThatCannotBeEncodedAsJson()
+    {
+        $httpClient = new MockClient();
+        $ipdata = $this->createIpdata($httpClient);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cannot encode the IP addresses as JSON');
+        try {
+            // invalid UTF-8 cannot be encoded by json_encode()
+            $ipdata->bulkLookup(["\xB1\x31"]);
+        } finally {
+            // nothing was sent
+            $this->assertCount(0, $httpClient->getRequests());
+        }
+    }
+
     public function testDefaultBaseUrlConstantIsPublic()
     {
         $this->assertSame('https://api.ipdata.co', Ipdata::DEFAULT_BASE_URL);
