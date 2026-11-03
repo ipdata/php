@@ -111,7 +111,7 @@ class Ipdata
             $query['fields'] = implode(',', $fields);
         }
 
-        $url = $ip !== '' ? sprintf('%s/%s', $this->baseUrl, $ip) : $this->baseUrl;
+        $url = '' !== $ip ? sprintf('%s/%s', $this->baseUrl, $ip) : $this->baseUrl;
         $request = $this->createRequest('GET', sprintf('%s?%s', $url, http_build_query($query)));
         $response = $this->httpClient->sendRequest($request);
 
@@ -145,7 +145,7 @@ class Ipdata
     }
 
     /**
-     * @deprecated Use bulkLookup() instead.
+     * @deprecated use bulkLookup() instead
      *
      * @param array<string> $ips
      * @param array<string> $fields
