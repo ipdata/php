@@ -245,3 +245,13 @@ Some feeds, for example ipdata's own vpn feed, carry none of the three blocklist
 ## Errors
 
 A list of possible errors is available at [Status Codes](https://docs.ipdata.co/api-reference/status-codes)
+
+## Releasing
+
+Releases are cut by CI, and the version source is the first `## x.y.z` heading in `CHANGELOG.md`: `composer.json`
+carries no `version` field, and Packagist reads the versions of `ipdata/api-client` from the Git tags.
+
+To release, add a `## x.y.z` heading with the release notes at the top of `CHANGELOG.md` in a pull request and merge
+it. On the push to `master`, once the tests have passed, the `release` job of the CI workflow tags the merge commit
+`x.y.z`, creates the GitHub release with generated notes, and Packagist picks the new tag up through its GitHub hook.
+A merge whose version is already tagged publishes nothing, so there is no manual tagging.
