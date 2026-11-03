@@ -9,6 +9,7 @@
 - Documentation and tests for the new API response fields: top-level `is_satellite` and `is_anycast` (present only when `true`) and `first_seen`, `last_seen` (`YYYY-MM-DD`, UTC) and `days_seen` on `threat.blocklists` entries (absent for some feeds). The client passes them through unchanged.
 - Every request carries a `User-Agent: ipdata-php/<version>` header. The version is the installed version of `ipdata/api-client` as recorded by Composer (`Composer\InstalledVersions`, Composer 2 and newer); without it the header is `ipdata-php`.
 - `Ipdata::DEFAULT_BASE_URL` is public, so the trailing `$httpVersion` argument can be passed without repeating the endpoint: `new Ipdata('my_api_key', $httpClient, $psr17Factory, Ipdata::DEFAULT_BASE_URL, '2.0')`.
+- Releases are cut by CI: when a merge to `master` puts a new `## x.y.z` heading at the top of this file, the `release` job of the CI workflow creates the tag `x.y.z` and the GitHub release, and Packagist picks the tag up through its GitHub hook (see "Releasing" in the README).
 
 ### Fixed
 
