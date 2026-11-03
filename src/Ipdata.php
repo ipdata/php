@@ -17,6 +17,8 @@ use Psr\Http\Message\ResponseInterface;
 /**
  * A small client to talk with Ipdata.co API.
  *
+ * @api
+ *
  * @author Tobias Nyholm <tobias.nyholm@gmail.com>
  */
 class Ipdata
